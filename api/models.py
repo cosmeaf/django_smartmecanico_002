@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 
 User = get_user_model();
 
@@ -19,20 +20,27 @@ class Base(models.Model):
         verbose_name_plural = 'Bases Models'
         
 ################### PROFILE MODEL ###################
-class Profile(models.Model):
+class Profile(Base):
     def get_file_path(instance, filename):
         ext = filename.split('.')[-1]
         filename = "%s.%s" % (uuid.uuid4(), ext)
-        return os.path.join('icon', filename)
-    user = models.ForeignKey(User, verbose_name='Usuário', on_delete=models.CASCADE)
-    image = models.ImageField('Fotografia', default='default.png', upload_to=get_file_path, blank=True, null=True)
-    phone_number = models.CharField('Celular', max_length=13, null=True, blank=True)
-    birthdate = models.DateField('Data Nascimento',null=True, blank=True)
-    biography = models.TextField('Biografia', editable=True, null=True, blank=True)
+        return os.path.join('profile', filename)
+    
+    user = models.OneToOneField(User, verbose_name='Usuário', on_delete=models.CASCADE)
+    birthday=models.DateField('Aniversário',auto_now=False, null=True, blank=True)
+    phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
+    phone_number = models.CharField('Contato', validators=[phone_regex], max_length=17, blank=True, null=True)
+    image = models.ImageField('Foto',default='default.png', 
+                              upload_to=get_file_path, height_field=None, width_field=None, max_length=None, null=True, blank=True)
+    
+    class Meta:
+        db_table = 'tbl_profile'
+        verbose_name = 'Profile'
+        verbose_name_plural = 'Profiles'
+        
+    # def __str__(self):
+    #     return self.user.get_username
 
-    def __str__(self):  # __unicode__ for Python 2
-        return self.user.username
-          
 ################### ADDRESS MODEL ###################
 class Address(Base):
     user = models.ForeignKey(User, verbose_name='Usuário', on_delete=models.CASCADE)
@@ -118,13 +126,13 @@ class HourAvailable(Base):
 class Schedule(Base):
     user = models.ForeignKey(
         User, verbose_name='Usuário', on_delete=models.CASCADE)
-    address = models.ForeignKey(Address, verbose_name='Endereço', on_delete=models.PROTECT,
+    address = models.ForeignKey(Address, verbose_name='Endereço', on_delete=models.CASCADE,
                                 related_name='Address', related_query_name="Addres")
-    vehicle = models.ForeignKey(Vehicle, verbose_name='Veículo', on_delete=models.PROTECT,
+    vehicle = models.ForeignKey(Vehicle, verbose_name='Veículo', on_delete=models.CASCADE,
                                 related_name='Vehicle', related_query_name="Vehicle")
     service = models.ForeignKey(Service, verbose_name='Serviço', on_delete=models.PROTECT,
                                 related_name='Service', related_query_name="Service")
-    hour = models.ForeignKey(HourAvailable, verbose_name='Hora', on_delete=models.PROTECT,
+    hour = models.ForeignKey(HourAvailable, verbose_name='Hora', on_delete=models.CASCADE,
                              related_name='HourAvailable', related_query_name="HourAvailable")
     day = models.DateField('Data do Serviço', help_text='Escolha data disponível')
 

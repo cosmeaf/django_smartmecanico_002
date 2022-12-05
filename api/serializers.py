@@ -3,8 +3,57 @@ from .models import Address, Vehicle, Service, HourAvailable, Schedule, Profile
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 User = get_user_model()
 
+################### REGISTER USER SERIALIZERS ###################
+class UserSerializer(serializers.ModelSerializer):
+    username = serializers.StringRelatedField()
+
+    class Meta:
+        model = User
+        # fields = '__all__'
+        exclude = ['is_superuser', 'is_staff', 'is_active', 'last_login','date_joined', 'groups', 'user_permissions', 'password']
+        # extra_kwargs = {'username': {'required': True}}
+        
+class UserDetailSerializer(serializers.ModelSerializer):
+    username = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = User
+        # fields = ['id']
+        exclude = ['is_superuser', 'is_staff', 'is_active', 'last_login','date_joined', 'groups', 'user_permissions', 'password']
+        # extra_kwargs = {'username': {'required': True}}
+
+################### PROFILE  USER SERIALIZERS #####################
+class ProfileSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    
+    class Meta:
+        model = Profile
+        # fields = '__all__'
+        exclude = ['created_at', 'updated_at', 'deleted_at']
+        extra_kwargs = {'user': {'required': True}}
+
+class ProfileDetailSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Profile
+        # fields = '__all__'
+        # fields = ['user_id']
+        # fields = ['id', 'birthday', 'phone_number', 'image']
+        exclude = ['created_at', 'updated_at', 'deleted_at']
+        extra_kwargs = {'user': {'required': True}}
+################### CHANGE PASSWORD SERIALIZERS ###################
+class ChangePasswordSerializer(serializers.Serializer):
+    model = User
+    """
+    Serializer for password change endpoint.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
 ################### REGISTER USER SERIALIZERS ###################
 class UserRegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True,validators=[UniqueValidator(queryset=User.objects.all())])
@@ -39,24 +88,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         return user
 
-################### PROFILE USER SERIALIZERS ###################
-class ProfileSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-
-    class Meta:
-        model = Profile
-        fields = '__all__'
-        #exclude = ['created_at', 'updated_at', 'deleted_at']
-        extra_kwargs = {'user': {'required': True}}
-
-class ProfileDetailSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = Profile
-        fields = '__all__'
-        #fields = ['id', 'user', 'image', 'phone_number', 'birthdate', 'biography']
-        extra_kwargs = {'user': {'required': True}}   
+################### LOGOUT USER SERIALIZERS ###################
+ 
 ################### ADDRESS SERIALIZERS ###################
 class AddressSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
